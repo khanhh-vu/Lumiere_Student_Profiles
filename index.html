@@ -516,6 +516,7 @@
       <select id="filter-links" aria-label="Filter by links">
         <option value="">All Students</option>
         <option value="has-url">With Links Only</option>
+        <option value="has-journal">With Journal Publication</option>
       </select>
     </div>
     <span id="result-count"></span>
@@ -685,6 +686,7 @@
       if (cohort   && s.cohort !== cohort) return false;
       if (country  && s.country !== country) return false;
       if (links === 'has-url' && !hasAnyURL(s)) return false;
+      if (links === 'has-journal' && !getJournalInfo(s)) return false;
       if (q) {
         const hay = [s.studentName, s.researchQuestion, s.mentorField, s.journal,
                      s.cohort, s.country, s.isefStatus]
@@ -697,7 +699,7 @@
 
   function applyFilters() {
     // Highlight the links dropdown when it's actively filtering
-    $('filter-links').classList.toggle('active', $('filter-links').value === 'has-url');
+    $('filter-links').classList.toggle('active', $('filter-links').value !== '');
     renderCards(getFiltered());
   }
 
