@@ -3,7 +3,7 @@ const TABLE_ID = "tbl86VUnRDEiBphrL";
 
 const FIELDS = [
   "Student Name", "Cohort of Program", "Graduation Year",
-  "Journal of Acceptance (Text)", "PM: Research Question",
+  "Journal of Acceptance (Text)", "Journal of Resubmission (Text)", "PM: Research Question",
   "Research Field", "Country", "Vertical", "ISEF Status",
   "Link to Publication", "ISEF Publication Link",
 ];
@@ -57,6 +57,7 @@ export async function onRequestGet(context) {
           cohort:              clean(f["Cohort of Program"]),
           graduationYear:      f["Graduation Year"] || "",
           journal:             clean(f["Journal of Acceptance (Text)"]),
+          journalResubmission: clean(f["Journal of Resubmission (Text)"]),
           researchQuestion:    clean(f["PM: Research Question"]),
           mentorField:         clean(f["Research Field"]),
           country:             clean(f["Country"]),
