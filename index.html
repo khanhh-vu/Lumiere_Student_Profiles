@@ -461,7 +461,7 @@
     </div>
     <div class="header-meta">
       <div class="header-meta-text">
-        Refreshes every hour<br>
+        Automatically refreshes every hour<br>
         Last updated: <span id="last-updated">—</span>
       </div>
       <button id="refresh-btn" aria-label="Refresh data">
@@ -504,8 +504,8 @@
       <input type="search" id="search" placeholder="Search by name, question, field…" autocomplete="off" />
     </div>
     <div class="filter-group">
-      <select id="filter-vertical" aria-label="Filter by vertical">
-        <option value="">All Verticals</option>
+      <select id="filter-field" aria-label="Filter by research field">
+        <option value="">All Research Fields</option>
       </select>
       <select id="filter-cohort" aria-label="Filter by cohort">
         <option value="">All Cohorts</option>
@@ -545,7 +545,7 @@
 
 <!-- ── Footer ────────────────────────────────────────── -->
 <footer>
-  © Lumiere Education
+  © Lumiere Education · Profiles updated automatically from Airtable
 </footer>
 
 <script>
@@ -584,6 +584,7 @@
 
   let ALL_STUDENTS = [];
   let isLoading = false;
+  let currentModalStudentId = null;
 
   async function loadData() {
     if (isLoading) return;
@@ -639,7 +640,7 @@
   }
 
   function resetFilters() {
-    ['filter-vertical', 'filter-cohort', 'filter-country'].forEach(id => {
+    ['filter-field', 'filter-cohort', 'filter-country'].forEach(id => {
       const sel = $(id);
       while (sel.options.length > 1) sel.remove(1);
     });
@@ -655,7 +656,7 @@
   }
 
   function populateFilters() {
-    const verticals = [...new Set(ALL_STUDENTS.map(s => s.vertical).filter(Boolean))].sort();
+    const researchFields = [...new Set(ALL_STUDENTS.map(s => s.mentorField).filter(Boolean))].sort();
     const cohorts   = [...new Set(ALL_STUDENTS.map(s => s.cohort).filter(Boolean))].sort();
     const countries = [...new Set(ALL_STUDENTS.map(s => s.country).filter(Boolean))].sort();
 
@@ -667,26 +668,26 @@
         sel.appendChild(o);
       });
     };
-    fill('filter-vertical', verticals);
+    fill('filter-field', researchFields);
     fill('filter-cohort', cohorts);
     fill('filter-country', countries);
   }
 
   function getFiltered() {
     const q        = $('search').value.trim().toLowerCase();
-    const vertical = $('filter-vertical').value;
+    const researchField = $('filter-field').value;
     const cohort   = $('filter-cohort').value;
     const country  = $('filter-country').value;
     const links    = $('filter-links').value;
 
     return ALL_STUDENTS.filter(s => {
-      if (vertical && s.vertical !== vertical) return false;
+      if (researchField && s.mentorField !== researchField) return false;
       if (cohort   && s.cohort !== cohort) return false;
       if (country  && s.country !== country) return false;
       if (links === 'has-url' && !hasAnyURL(s)) return false;
       if (q) {
         const hay = [s.studentName, s.researchQuestion, s.mentorField, s.journal,
-                     s.cohort, s.country, s.vertical, s.isefStatus]
+                     s.cohort, s.country, s.isefStatus]
           .join(' ').toLowerCase();
         if (!hay.includes(q)) return false;
       }
@@ -700,7 +701,7 @@
     renderCards(getFiltered());
   }
 
-  ['search', 'filter-vertical', 'filter-cohort', 'filter-country', 'filter-links'].forEach(id => {
+  ['search', 'filter-field', 'filter-cohort', 'filter-country', 'filter-links'].forEach(id => {
     $(id).addEventListener('input', applyFilters);
     $(id).addEventListener('change', applyFilters);
   });
@@ -730,7 +731,6 @@
           ${s.country ? `<span class="card-country">${esc(s.country)}</span>` : ''}
         </div>
         <div class="card-meta">
-          ${s.vertical                 ? `<span class="tag tag-vertical">${esc(s.vertical)}</span>` : ''}
           ${s.cohort                   ? `<span class="tag tag-cohort">${esc(s.cohort)}</span>` : ''}
           ${s.graduationYear           ? `<span class="tag tag-year">Class of ${esc(String(s.graduationYear))}</span>` : ''}
           ${s.mentorField              ? `<span class="tag tag-field">${esc(s.mentorField)}</span>` : ''}
@@ -748,9 +748,9 @@
   }
 
   function openModal(s) {
+    currentModalStudentId = s.id;
     $('modal-name').textContent = s.studentName || '—';
     $('modal-tags').innerHTML = [
-      s.vertical                 ? `<span class="tag tag-vertical">${esc(s.vertical)}</span>` : '',
       s.cohort                   ? `<span class="tag tag-cohort">${esc(s.cohort)}</span>` : '',
       s.graduationYear           ? `<span class="tag tag-year">Class of ${esc(String(s.graduationYear))}</span>` : '',
       s.mentorField              ? `<span class="tag tag-field">${esc(s.mentorField)}</span>` : '',
@@ -778,7 +778,11 @@
       : '';
 
     $('modal-body').innerHTML = [
-      section('Research Question', esc(s.researchQuestion), true),
+      `<div class="modal-section" id="ai-journey-section">
+        <div class="modal-label">Student Journey</div>
+        <div class="modal-value" id="ai-journey-text">Generating summary…</div>
+      </div>`,
+      s.researchQuestion ? '<div class="modal-divider"></div>' + section('Research Question', esc(s.researchQuestion), true) : '',
       journalVal ? '<div class="modal-divider"></div>' + section(journalInfo.label, journalVal) : '',
       s.isefStatus ? '<div class="modal-divider"></div>' + section('ISEF Status', esc(s.isefStatus)) : '',
       pubVal ? '<div class="modal-divider"></div>' + section('Publication', pubVal) : '',
@@ -787,6 +791,43 @@
     $('modal-backdrop').classList.add('open');
     $('modal-close').focus();
     document.body.style.overflow = 'hidden';
+
+    loadStudentJourney(s, journalInfo);
+  }
+
+  // Fetches (or generates) the AI journey summary for the open profile.
+  // Guards against the modal having moved on to a different student (or
+  // closed) by the time the response comes back.
+  async function loadStudentJourney(s, journalInfo) {
+    try {
+      const res = await fetch('/api/describe', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          id:             s.id,
+          studentName:    s.studentName,
+          schoolGrade:    s.schoolGrade,
+          cohort:         s.cohort,
+          programType:    s.programType,
+          researchField:  s.mentorField,
+          isefStatus:     s.isefStatus,
+          journalLabel:   journalInfo ? journalInfo.label : null,
+          journalText:    journalInfo ? journalInfo.text : null,
+          graduationYear: s.graduationYear,
+          country:        s.country,
+        }),
+      });
+      if (currentModalStudentId !== s.id) return;
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const data = await res.json();
+      if (currentModalStudentId !== s.id) return;
+      const el = $('ai-journey-text');
+      if (el) el.textContent = data.description || 'Summary unavailable.';
+    } catch (e) {
+      if (currentModalStudentId !== s.id) return;
+      const el = $('ai-journey-text');
+      if (el) el.textContent = 'Summary unavailable right now.';
+    }
   }
 
   function closeModal() {
