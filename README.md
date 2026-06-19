@@ -11,7 +11,7 @@ Airtable query logic, field cleaning, and response shape are identical.
 `functions/api/data.js` automatically serves that exact route.
 
 Required folder layout (functions must sit at the project root, as siblings of
-your static files — not inside a build output folder):
+the static files — not inside a build output folder):
 
 ```
 your-repo/
@@ -36,40 +36,3 @@ your-repo/
    and Preview. Redeploy once after adding it.
 
 From then on, every push to your main branch auto-deploys, same as Vercel.
-
-## Deploy via CLI instead (optional)
-
-```bash
-npm install -g wrangler
-wrangler login
-cd your-repo
-wrangler pages deploy . --project-name=lumiere-profiles
-wrangler pages secret put AIRTABLE_TOKEN --project-name=lumiere-profiles
-```
-
-## Local testing (optional)
-
-Create a `.dev.vars` file in the project root (don't commit it):
-
-```
-AIRTABLE_TOKEN=your_token_here
-```
-
-Then run:
-
-```bash
-wrangler pages dev .
-```
-
-This serves the site at `localhost:8788` with the function live, using your
-local token.
-
-## Notes
-
-- The refresh button and hourly `setInterval` in `index.html` work exactly as
-  before — no frontend changes needed.
-- Cloudflare's free tier explicitly permits commercial/business use, so this
-  resolves the ToS concern that prompted the move off Vercel Hobby.
-- Pages Functions don't spin down between requests (unlike free-tier
-  containers on platforms like Render), so there's no cold-start delay on the
-  refresh button.
