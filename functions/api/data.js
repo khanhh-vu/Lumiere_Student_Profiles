@@ -6,6 +6,7 @@ const FIELDS = [
   "Journal of Acceptance (Text)", "Journal of Resubmission (Text)", "PM: Research Question",
   "Research Field", "Country", "Vertical", "ISEF Status",
   "Link to Publication", "ISEF Publication Link",
+  "School Grade (Text)", "Program Type",
 ];
 
 const REC_ID_RE = /^rec[A-Za-z0-9]{14}$/;
@@ -65,6 +66,8 @@ export async function onRequestGet(context) {
           isefStatus:          clean(f["ISEF Status"]),
           publicationLink:     clean(f["Link to Publication"]),
           isefPublicationLink: clean(f["ISEF Publication Link"]),
+          schoolGrade:         clean(f["School Grade (Text)"]),
+          programType:         clean(f["Program Type"]),
         });
       }
       offset = body.offset;
