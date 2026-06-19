@@ -317,6 +317,11 @@
       padding-left: .75rem;
       font-style: italic;
     }
+    .card-question a {
+      color: var(--navy);
+      text-decoration: underline;
+      text-underline-offset: 2px;
+    }
     .card-journal {
       font-size: .82rem;
       color: var(--muted);
@@ -555,9 +560,26 @@
     return isURL(val) ? val : '';
   }
 
+  // Journal of Acceptance if present, otherwise Journal of Resubmission.
+  // Returns null if neither is set.
+  function getJournalInfo(s) {
+    if (s.journal) return { label: 'Journal of Acceptance', text: s.journal };
+    if (s.journalResubmission) return { label: 'Journal of Resubmission', text: s.journalResubmission };
+    return null;
+  }
+
+  // Renders journal text as a link if it's a URL, plain text otherwise
+  function journalHTML(info) {
+    if (!info) return '';
+    const url = toURL(info.text);
+    return url
+      ? `<a href="${esc(url)}" target="_blank" rel="noopener">${esc(info.text)}</a>`
+      : esc(info.text);
+  }
+
   // Returns true if the student has at least one valid URL across all link fields
   function hasAnyURL(s) {
-    return !!(toURL(s.journal) || toURL(s.publicationLink) || toURL(s.isefPublicationLink));
+    return !!(toURL(s.journal) || toURL(s.journalResubmission) || toURL(s.publicationLink) || toURL(s.isefPublicationLink));
   }
 
   let ALL_STUDENTS = [];
@@ -700,7 +722,7 @@
     }
 
     grid.innerHTML = students.map((s, i) => {
-      const journalURL = toURL(s.journal);
+      const journalDisplay = journalHTML(getJournalInfo(s));
       return `
       <article class="card" tabindex="0" data-idx="${i}" role="button" aria-label="View profile for ${esc(s.studentName)}">
         <div class="card-header">
@@ -714,8 +736,7 @@
           ${s.mentorField              ? `<span class="tag tag-field">${esc(s.mentorField)}</span>` : ''}
           ${isISEFStatus(s.isefStatus) ? `<span class="tag tag-isef">${esc(s.isefStatus)}</span>` : ''}
         </div>
-        ${s.researchQuestion ? `<p class="card-question">${esc(s.researchQuestion)}</p>` : ''}
-        ${journalURL ? `<p class="card-journal"><a href="${esc(journalURL)}" target="_blank" rel="noopener">View Journal →</a></p>` : ''}
+        ${journalDisplay ? `<p class="card-question">${journalDisplay}</p>` : ''}
       </article>`;
     }).join('');
 
@@ -743,9 +764,12 @@
         <div class="modal-value${italic ? ' italic' : ''}">${value}</div>
       </div>` : '';
 
-    const journalURL = toURL(s.journal);
-    const journalVal = journalURL
-      ? `<a href="${esc(journalURL)}" target="_blank" rel="noopener" style="color:var(--navy);text-decoration:underline;text-underline-offset:2px">${esc(journalURL)}</a>`
+    const journalInfo = getJournalInfo(s);
+    const journalURLForModal = journalInfo ? toURL(journalInfo.text) : '';
+    const journalVal = journalInfo
+      ? (journalURLForModal
+          ? `<a href="${esc(journalURLForModal)}" target="_blank" rel="noopener" style="color:var(--navy);text-decoration:underline;text-underline-offset:2px">${esc(journalInfo.text)}</a>`
+          : esc(journalInfo.text))
       : '';
 
     const pubURL = isISEFStatus(s.isefStatus) ? toURL(s.isefPublicationLink) : toURL(s.publicationLink);
@@ -755,7 +779,7 @@
 
     $('modal-body').innerHTML = [
       section('Research Question', esc(s.researchQuestion), true),
-      journalVal ? '<div class="modal-divider"></div>' + section('Journal of Acceptance', journalVal) : '',
+      journalVal ? '<div class="modal-divider"></div>' + section(journalInfo.label, journalVal) : '',
       s.isefStatus ? '<div class="modal-divider"></div>' + section('ISEF Status', esc(s.isefStatus)) : '',
       pubVal ? '<div class="modal-divider"></div>' + section('Publication', pubVal) : '',
     ].join('');
