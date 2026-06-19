@@ -461,7 +461,7 @@
     </div>
     <div class="header-meta">
       <div class="header-meta-text">
-        Automatically refreshes every hour<br>
+        Refreshes every hour<br>
         Last updated: <span id="last-updated">—</span>
       </div>
       <button id="refresh-btn" aria-label="Refresh data">
@@ -545,7 +545,7 @@
 
 <!-- ── Footer ────────────────────────────────────────── -->
 <footer>
-  © Lumiere Education · Profiles updated automatically from Airtable
+  © Lumiere Education
 </footer>
 
 <script>
@@ -801,7 +801,7 @@
   $('refresh-btn').addEventListener('click', loadData);
 
   loadData();
-  setInterval(loadData, 5 * 60 * 1000);
+  setInterval(loadData, 60 * 60 * 1000);
 </script>
 </body>
 </html>
