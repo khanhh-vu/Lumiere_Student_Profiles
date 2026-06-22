@@ -336,11 +336,6 @@
       text-decoration: underline;
       text-underline-offset: 2px;
     }
-    .card-description {
-      font-size: .875rem;
-      color: #4b5563;
-      line-height: 1.65;
-    }
 
     /* ── Empty / Error / Loading ──────────────────────── */
     .state-msg {
@@ -647,7 +642,6 @@
 
   let ALL_STUDENTS = [];
   let isLoading = false;
-  let currentModalStudentId = null;
 
   async function loadData() {
     if (isLoading) return;
@@ -787,7 +781,7 @@
     }
 
     grid.innerHTML = students.map((s, i) => {
-      const desc = buildDescription(s);
+      const journalDisplay = journalHTML(getJournalInfo(s));
       return `
       <article class="card" tabindex="0" data-idx="${i}" role="button" aria-label="View profile for ${esc(s.studentName)}">
         <div class="card-header">
@@ -800,7 +794,7 @@
           ${s.mentorField              ? `<span class="tag tag-field">${esc(s.mentorField)}</span>` : ''}
           ${isISEFStatus(s.isefStatus) ? `<span class="tag tag-isef">${esc(s.isefStatus)}</span>` : ''}
         </div>
-        ${desc ? `<p class="card-description">${desc}</p>` : ''}
+        ${journalDisplay ? `<p class="card-question">${journalDisplay}</p>` : ''}
       </article>`;
     }).join('');
 
@@ -812,7 +806,6 @@
   }
 
   function openModal(s) {
-    currentModalStudentId = s.id;
     $('modal-name').textContent = s.studentName || '—';
     $('modal-tags').innerHTML = [
       s.cohort                   ? `<span class="tag tag-cohort">${esc(s.cohort)}</span>` : '',
@@ -844,7 +837,7 @@
     $('modal-body').innerHTML = [
       `<div class="modal-section" id="ai-journey-section">
         <div class="modal-label">Student Journey</div>
-        <div class="modal-value" id="ai-journey-text">Generating summary…</div>
+        <div class="modal-value" id="ai-journey-text">${buildDescription(s)}</div>
       </div>`,
       s.researchQuestion ? '<div class="modal-divider"></div>' + section('Research Question', esc(s.researchQuestion), true) : '',
       journalVal ? '<div class="modal-divider"></div>' + section(journalInfo.label, journalVal) : '',
@@ -855,43 +848,6 @@
     $('modal-backdrop').classList.add('open');
     $('modal-close').focus();
     document.body.style.overflow = 'hidden';
-
-    loadStudentJourney(s, journalInfo);
-  }
-
-  // Fetches (or generates) the AI journey summary for the open profile.
-  // Guards against the modal having moved on to a different student (or
-  // closed) by the time the response comes back.
-  async function loadStudentJourney(s, journalInfo) {
-    try {
-      const res = await fetch('/api/describe', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          id:             s.id,
-          studentName:    s.studentName,
-          schoolGrade:    s.schoolGrade,
-          cohort:         s.cohort,
-          programType:    s.programType,
-          researchField:  s.mentorField,
-          isefStatus:     s.isefStatus,
-          journalLabel:   journalInfo ? journalInfo.label : null,
-          journalText:    journalInfo ? journalInfo.text : null,
-          graduationYear: s.graduationYear,
-          country:        s.country,
-        }),
-      });
-      if (currentModalStudentId !== s.id) return;
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const data = await res.json();
-      if (currentModalStudentId !== s.id) return;
-      const el = $('ai-journey-text');
-      if (el) el.textContent = data.description || 'Summary unavailable.';
-    } catch (e) {
-      if (currentModalStudentId !== s.id) return;
-      const el = $('ai-journey-text');
-      if (el) el.textContent = 'Summary unavailable right now.';
-    }
   }
 
   function closeModal() {
