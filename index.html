@@ -336,6 +336,11 @@
       text-decoration: underline;
       text-underline-offset: 2px;
     }
+    .card-description {
+      font-size: .875rem;
+      color: #4b5563;
+      line-height: 1.65;
+    }
 
     /* ── Empty / Error / Loading ──────────────────────── */
     .state-msg {
@@ -583,6 +588,63 @@
     return !!(toURL(s.journal) || toURL(s.journalResubmission) || toURL(s.publicationLink) || toURL(s.isefPublicationLink));
   }
 
+  // Builds a plain-text (HTML-safe) profile sentence for a student card.
+  // Template rules:
+  //   • School Grade: if the value contains "university" (case-insensitive), omit the word "grade"
+  //   • First name extracted from Student Name; falls back to full name if only one word
+  //   • Journal: prefer Journal of Acceptance, fall back to Journal of Resubmission
+  //   • ISEF-only → talk about ISEF win; Journal-only → talk about journal; both → mention both
+  function buildDescription(s) {
+    const sentences = [];
+
+    // ── Sentence 1: identity + enrollment ──
+    const grade = (s.schoolGrade || '').trim();
+    const isUniversity = grade.toLowerCase().includes('university');
+    const intro = grade
+      ? `${esc(s.studentName)} is a ${esc(grade)}${isUniversity ? '' : ' grade'} student`
+      : `${esc(s.studentName)} is a student`;
+    const fromCountry = s.country ? ` from ${esc(s.country)}` : '';
+    let enrolled = '';
+    if (s.programType && s.cohort) {
+      enrolled = ` who enrolled in our ${esc(s.programType)} in ${esc(s.cohort)}`;
+    } else if (s.programType) {
+      enrolled = ` who enrolled in our ${esc(s.programType)}`;
+    } else if (s.cohort) {
+      enrolled = ` who enrolled in ${esc(s.cohort)}`;
+    }
+    sentences.push(`${intro}${fromCountry}${enrolled}.`);
+
+    // ── Sentence 2+: achievements ──
+    const nameParts = s.studentName ? s.studentName.trim().split(/\s+/) : [];
+    const nameRef = esc(nameParts.length > 1 ? nameParts[0] : s.studentName);
+
+    const journalName = s.journal || s.journalResubmission || '';
+    const hasJournal  = !!journalName;
+    const hasISEF     = isISEFStatus(s.isefStatus);
+    const hasField    = !!s.mentorField;
+
+    if (hasJournal && hasISEF) {
+      // Both: journal + ISEF
+      const fieldPart = hasField ? `conducted research in ${esc(s.mentorField)}, and ` : '';
+      sentences.push(
+        `${nameRef} ${fieldPart}successfully published in ${esc(journalName)}.` +
+        ` ${nameRef} was also recognized as an ${esc(s.isefStatus)}.`
+      );
+    } else if (hasJournal) {
+      const fieldPart = hasField ? `conducted research in ${esc(s.mentorField)}, and ` : '';
+      sentences.push(`${nameRef} ${fieldPart}successfully published in ${esc(journalName)}.`);
+    } else if (hasISEF) {
+      const fieldPart = hasField
+        ? `conducted research in ${esc(s.mentorField)} and was`
+        : 'was';
+      sentences.push(`${nameRef} ${fieldPart} recognized as an ${esc(s.isefStatus)}.`);
+    } else if (hasField) {
+      sentences.push(`${nameRef} conducted research in ${esc(s.mentorField)}.`);
+    }
+
+    return sentences.join(' ');
+  }
+
   let ALL_STUDENTS = [];
   let isLoading = false;
   let currentModalStudentId = null;
@@ -725,7 +787,7 @@
     }
 
     grid.innerHTML = students.map((s, i) => {
-      const journalDisplay = journalHTML(getJournalInfo(s));
+      const desc = buildDescription(s);
       return `
       <article class="card" tabindex="0" data-idx="${i}" role="button" aria-label="View profile for ${esc(s.studentName)}">
         <div class="card-header">
@@ -738,7 +800,7 @@
           ${s.mentorField              ? `<span class="tag tag-field">${esc(s.mentorField)}</span>` : ''}
           ${isISEFStatus(s.isefStatus) ? `<span class="tag tag-isef">${esc(s.isefStatus)}</span>` : ''}
         </div>
-        ${journalDisplay ? `<p class="card-question">${journalDisplay}</p>` : ''}
+        ${desc ? `<p class="card-description">${desc}</p>` : ''}
       </article>`;
     }).join('');
 
