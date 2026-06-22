@@ -608,7 +608,8 @@
     const intro = grade
       ? `${esc(s.studentName)} is a ${esc(grade)}${isUniversity ? '' : ' grade'} student`
       : `${esc(s.studentName)} is a student`;
-    const fromCountry = s.country ? ` from ${esc(s.country)}` : '';
+    const countryLabel = s.country === 'United States of America' ? 'the US' : s.country;
+    const fromCountry = s.country ? ` from ${esc(countryLabel)}` : '';
     let enrolled = '';
     if (s.programType && s.cohort) {
       enrolled = ` who enrolled in our ${esc(s.programType)} in ${esc(formatCohort(s.cohort))}`;
