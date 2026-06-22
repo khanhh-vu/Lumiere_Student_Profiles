@@ -583,6 +583,16 @@
     return !!(toURL(s.journal) || toURL(s.journalResubmission) || toURL(s.publicationLink) || toURL(s.isefPublicationLink));
   }
 
+  // Reformats "2023 Summer Cohort" → "Summer 2023". Falls back to the raw
+  // value if the pattern doesn't match (so nothing breaks for unexpected data).
+  function formatCohort(cohort) {
+    if (!cohort) return '';
+    const season = cohort.match(/\b(Spring|Summer|Fall|Winter)\b/i);
+    const year   = cohort.match(/\b(20\d{2})\b/);
+    if (season && year) return `${season[1]} ${year[1]}`;
+    return cohort;
+  }
+
   // Builds a plain-text (HTML-safe) profile sentence for a student card.
   // Template rules:
   //   • School Grade: if the value contains "university" (case-insensitive), omit the word "grade"
@@ -601,11 +611,11 @@
     const fromCountry = s.country ? ` from ${esc(s.country)}` : '';
     let enrolled = '';
     if (s.programType && s.cohort) {
-      enrolled = ` who enrolled in our ${esc(s.programType)} in ${esc(s.cohort)}`;
+      enrolled = ` who enrolled in our ${esc(s.programType)} in ${esc(formatCohort(s.cohort))}`;
     } else if (s.programType) {
       enrolled = ` who enrolled in our ${esc(s.programType)}`;
     } else if (s.cohort) {
-      enrolled = ` who enrolled in ${esc(s.cohort)}`;
+      enrolled = ` who enrolled in ${esc(formatCohort(s.cohort))}`;
     }
     sentences.push(`${intro}${fromCountry}${enrolled}.`);
 
