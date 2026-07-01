@@ -593,6 +593,22 @@
     return cohort;
   }
 
+  // Returns the degree with the correct indefinite article, e.g.:
+  //   "PhD"   → "a PhD"    (P sounds like "pee"  → consonant)
+  //   "MPhil" → "an MPhil" (M sounds like "em"   → vowel)
+  //   "MSc"   → "an MSc"   (M sounds like "em"   → vowel)
+  //   "Other" → "a degree" (catch-all)
+  // Rule: letters whose names start with a vowel sound get "an".
+  function degreeWithArticle(degree) {
+    if (!degree) return null;
+    const d = degree.trim();
+    if (/^other/i.test(d)) return 'a degree';
+    // Letters whose spoken name begins with a vowel sound
+    const vowelSoundFirst = new Set(['A','E','F','H','I','L','M','N','O','R','S','X']);
+    const article = vowelSoundFirst.has(d[0].toUpperCase()) ? 'an' : 'a';
+    return `${article} ${d}`;
+  }
+
   // Builds a plain-text (HTML-safe) profile sentence for a student card.
   // Template:
   //   S1: identity + enrollment
@@ -628,16 +644,18 @@
       // Build the mentor qualifier (degree + university)
       let qualifier = '';
       if (s.mentorDegreeType && s.mentorUniversity) {
-        qualifier = `, who obtained their ${esc(s.mentorDegreeType)} from ${esc(s.mentorUniversity)}`;
+        const degreePhrase = degreeWithArticle(s.mentorDegreeType);
+        qualifier = `, who obtained ${esc(degreePhrase)} from ${esc(s.mentorUniversity)}`;
       } else if (s.mentorDegreeType) {
-        qualifier = `, who holds a ${esc(s.mentorDegreeType)}`;
+        const degreePhrase = degreeWithArticle(s.mentorDegreeType);
+        qualifier = `, who holds ${esc(degreePhrase)}`;
       } else if (s.mentorUniversity) {
         qualifier = ` from ${esc(s.mentorUniversity)}`;
       }
       const researchClause = hasField
         ? `${nameRef} conducted research in ${esc(s.mentorField)}`
         : `${nameRef} pursued innovative research`;
-      sentences.push(`${researchClause} with the support of their mentor, ${esc(s.mentorName)}${qualifier}.`);
+      sentences.push(`With the support of their mentor, ${esc(s.mentorName)}${qualifier}, ${researchClause}.`);
     } else if (hasField) {
       sentences.push(`${nameRef} conducted research in ${esc(s.mentorField)}.`);
     }
