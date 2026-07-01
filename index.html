@@ -594,11 +594,10 @@
   }
 
   // Builds a plain-text (HTML-safe) profile sentence for a student card.
-  // Template rules:
-  //   • School Grade: if the value contains "university" (case-insensitive), omit the word "grade"
-  //   • First name extracted from Student Name; falls back to full name if only one word
-  //   • Journal: prefer Journal of Acceptance, fall back to Journal of Resubmission
-  //   • ISEF-only → talk about ISEF win; Journal-only → talk about journal; both → mention both
+  // Template:
+  //   S1: identity + enrollment
+  //   S2: mentor intro + research field
+  //   S3: achievement (journal, ISEF, or both)
   function buildDescription(s) {
     const sentences = [];
 
@@ -620,32 +619,40 @@
     }
     sentences.push(`${intro}${fromCountry}${enrolled}.`);
 
-    // ── Sentence 2+: achievements ──
+    // ── Sentence 2: mentor + research field ──
     const nameParts = s.studentName ? s.studentName.trim().split(/\s+/) : [];
-    const nameRef = esc(nameParts.length > 1 ? nameParts[0] : s.studentName);
+    const nameRef   = esc(nameParts.length > 1 ? nameParts[0] : s.studentName);
+    const hasField  = !!s.mentorField;
 
+    if (s.mentorName) {
+      // Build the mentor qualifier (degree + university)
+      let qualifier = '';
+      if (s.mentorDegreeType && s.mentorUniversity) {
+        qualifier = `, who obtained their ${esc(s.mentorDegreeType)} from ${esc(s.mentorUniversity)}`;
+      } else if (s.mentorDegreeType) {
+        qualifier = `, who holds a ${esc(s.mentorDegreeType)}`;
+      } else if (s.mentorUniversity) {
+        qualifier = ` from ${esc(s.mentorUniversity)}`;
+      }
+      const researchClause = hasField
+        ? `${nameRef} conducted research in ${esc(s.mentorField)}`
+        : `${nameRef} pursued innovative research`;
+      sentences.push(`With the support of their mentor, ${esc(s.mentorName)}${qualifier}, ${researchClause}.`);
+    } else if (hasField) {
+      sentences.push(`${nameRef} conducted research in ${esc(s.mentorField)}.`);
+    }
+
+    // ── Sentence 3: achievement ──
     const journalName = s.journal || s.journalResubmission || '';
     const hasJournal  = !!journalName;
     const hasISEF     = isISEFStatus(s.isefStatus);
-    const hasField    = !!s.mentorField;
 
     if (hasJournal && hasISEF) {
-      // Both: journal + ISEF
-      const fieldPart = hasField ? `conducted research in ${esc(s.mentorField)}, and ` : '';
-      sentences.push(
-        `${nameRef} ${fieldPart}successfully published in ${esc(journalName)}.` +
-        ` ${nameRef} was also recognized as an ${esc(s.isefStatus)}.`
-      );
+      sentences.push(`By the end of their program, they successfully published in ${esc(journalName)} and were also recognized as an ${esc(s.isefStatus)}.`);
     } else if (hasJournal) {
-      const fieldPart = hasField ? `conducted research in ${esc(s.mentorField)}, and ` : '';
-      sentences.push(`${nameRef} ${fieldPart}successfully published in ${esc(journalName)}.`);
+      sentences.push(`By the end of their program, they successfully published in ${esc(journalName)}.`);
     } else if (hasISEF) {
-      const fieldPart = hasField
-        ? `conducted research in ${esc(s.mentorField)} and was`
-        : 'was';
-      sentences.push(`${nameRef} ${fieldPart} recognized as an ${esc(s.isefStatus)}.`);
-    } else if (hasField) {
-      sentences.push(`${nameRef} conducted research in ${esc(s.mentorField)}.`);
+      sentences.push(`By the end of their program, they were recognized as an ${esc(s.isefStatus)}.`);
     }
 
     return sentences.join(' ');
