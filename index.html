@@ -637,7 +637,7 @@
       const researchClause = hasField
         ? `${nameRef} conducted research in ${esc(s.mentorField)}`
         : `${nameRef} pursued innovative research`;
-      sentences.push(`With the support of their mentor, ${esc(s.mentorName)}${qualifier}, ${researchClause}.`);
+      sentences.push(`${researchClause} with the support of their mentor, ${esc(s.mentorName)}${qualifier}.`);
     } else if (hasField) {
       sentences.push(`${nameRef} conducted research in ${esc(s.mentorField)}.`);
     }
