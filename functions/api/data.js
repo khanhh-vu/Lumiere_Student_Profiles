@@ -7,9 +7,9 @@ const FIELDS = [
   "Research Field", "Country", "Vertical", "ISEF Status",
   "Link to Publication", "ISEF Publication Link",
   "School Grade (Text)", "Program Type",
-  "fldFXYYbI4sZf5sun",  // Mentor Name
-  "fldrIfPx5XgxGQV11",  // Mentor University
-  "fldBKl5J28VUocBNk",  // Mentor Highest Degree Type
+  "Mentor Name",
+  "Mentor University",
+  "Mentor Highest Degree Type",
 ];
 
 const REC_ID_RE = /^rec[A-Za-z0-9]{14}$/;
@@ -71,9 +71,9 @@ export async function onRequestGet(context) {
           isefPublicationLink: clean(f["ISEF Publication Link"]),
           schoolGrade:         clean(f["School Grade (Text)"]),
           programType:         clean(f["Program Type"]),
-          mentorName:          clean(f["fldFXYYbI4sZf5sun"]),
-          mentorUniversity:    clean(f["fldrIfPx5XgxGQV11"]),
-          mentorDegreeType:    clean(f["fldBKl5J28VUocBNk"]),
+          mentorName:          clean(f["Mentor Name"]),
+          mentorUniversity:    clean(f["Mentor University"]),
+          mentorDegreeType:    clean(f["Mentor Highest Degree Type"]),
         });
       }
       offset = body.offset;
