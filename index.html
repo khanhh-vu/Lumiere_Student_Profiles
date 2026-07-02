@@ -642,6 +642,8 @@
 
     if (s.mentorName) {
       // Build the mentor qualifier (degree + university)
+      const isPhD = (s.mentorDegreeType || '').trim().toUpperCase() === 'PHD';
+      const mentorDisplayName = isPhD ? `Dr. ${s.mentorName}` : s.mentorName;
       let qualifier = '';
       if (s.mentorDegreeType && s.mentorUniversity) {
         const degreePhrase = degreeWithArticle(s.mentorDegreeType);
@@ -655,7 +657,7 @@
       const researchClause = hasField
         ? `${nameRef} conducted research in ${esc(s.mentorField)}`
         : `${nameRef} pursued innovative research`;
-      sentences.push(`${researchClause} with the support of their mentor, ${esc(s.mentorName)}${qualifier}.`);
+      sentences.push(`${researchClause} with the support of their mentor, ${esc(mentorDisplayName)}${qualifier}.`);
     } else if (hasField) {
       sentences.push(`${nameRef} conducted research in ${esc(s.mentorField)}.`);
     }
